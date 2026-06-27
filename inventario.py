@@ -1,55 +1,67 @@
 import requests
-import json
 import csv
+from requests.auth import HTTPBasicAuth
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-def obtener_inventario():
-    api_url = "https://sandboxdnac.cisco.com/dna/intent/api/v1/network-device"
+DNAC_URL = "https://sandboxdnac.cisco.com"
+USER = "devnetuser"
+PASS = "Cisco123!"
+
+def obtener_token():
+    print("Autenticando con Cisco DNA Center...")
+    url_auth = f"{DNAC_URL}/dna/system/api/v1/auth/token"
+    
+    try:
+        respuesta = requests.post(url_auth, auth=HTTPBasicAuth(USER, PASS), verify=False)
+        respuesta.raise_for_status()
+        token = respuesta.json()['Token']
+        print("¡Token obtenido con éxito!")
+        return token
+    except Exception as e:
+        print(f"Error al obtener el token: {e}")
+        return None
+
+def obtener_inventario(token):
+    print("Solicitando inventario de dispositivos...")
+    url_devices = f"{DNAC_URL}/dna/intent/api/v1/network-device"
     
     headers = {
         "Accept": "application/json",
-        "X-Auth-Token": "TU_TOKEN_AQUI"
+        "X-Auth-Token": token
     }
 
     try:
-        response = requests.get(api_url, headers=headers, verify=False)
-        
-        response.raise_for_status() 
-        
-        datos = response.json()
-        print("Inventario obtenido exitosamente.")
+        respuesta = requests.get(url_devices, headers=headers, verify=False)
+        respuesta.raise_for_status() 
+        datos = respuesta.json()
         return datos['response']
-
-    except requests.exceptions.HTTPError as errh:
-        print(f"Error HTTP: {errh}")
-    except requests.exceptions.ConnectionError as errc:
-        print(f"Error de Conexión: {errc}")
-    except requests.exceptions.Timeout as errt:
-        print(f"Timeout: {errt}")
-    except Exception as err:
-        print(f"Ocurrió un error inesperado: {err}")
-    
-    return None
+    except Exception as e:
+        print(f"Error al obtener el inventario: {e}")
+        return None
 
 def guardar_en_csv(dispositivos):
     if not dispositivos:
+        print("No hay dispositivos para guardar.")
         return
     
-    with open('inventario.csv', mode='w', newline='', encoding='utf-8') as file:
+    archivo = 'inventario.csv'
+    with open(archivo, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(['Hostname', 'Tipo', 'IP de Gestión', 'MAC Address'])
+        writer.writerow(['Hostname', 'Familia', 'IP de Gestión', 'MAC Address'])
         
         for dev in dispositivos:
             writer.writerow([
                 dev.get('hostname', 'N/A'),
-                dev.get('type', 'N/A'),
+                dev.get('family', 'N/A'),
                 dev.get('managementIpAddress', 'N/A'),
                 dev.get('macAddress', 'N/A')
             ])
-    print("Datos exportados a inventario.csv")
+    print(f"¡Éxito! Datos exportados correctamente a {archivo}")
 
 if __name__ == "__main__":
-    inventario = obtener_inventario()
-    guardar_en_csv(inventario)
+    token = obtener_token()
+    if token:
+        inventario = obtener_inventario(token)
+        guardar_en_csv(inventario)
