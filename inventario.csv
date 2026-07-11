@@ -1,0 +1,5 @@
+Hostname,Familia,IP de Gestión,MAC Address
+sw1,Switches and Hubs,10.10.20.175,52:54:00:02:19:54
+sw2,Switches and Hubs,10.10.20.176,52:54:00:07:29:d0
+sw3,Switches and Hubs,10.10.20.177,52:54:00:05:77:13
+sw4,Switches and Hubs,10.10.20.178,52:54:00:0f:1c:07
